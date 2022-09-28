@@ -1,8 +1,10 @@
 
       (function(modules) {
+        var cachedModules = {};
         function require(moduleId) {
+          if (cachedModules[moduleId]) return cachedModules[moduleId].exports;
           const [fn, map] = modules[moduleId]
-          const module = {exports: {}}
+          const module = cachedModules[moduleId] = {exports: {}}
           fn((name)=>require(map[name]), module, module.exports)
           return module.exports
         }
@@ -32,14 +34,17 @@ Object.defineProperty(exports, "__esModule", {
 exports.msg3 = void 0;
 exports.print = print;
 
+var _ = require("./1.js");
+
 function print() {
   console.log('同');
 }
 
+console.log(_.xunhuan1);
 var msg3 = "同城";
 exports.msg3 = msg3;
         },
-        undefined,
+        {"./1.js":"src/1.js"},
       ],'src/1.js': [
         function(require, module, exports) {
           "use strict";
@@ -47,12 +52,18 @@ exports.msg3 = msg3;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.msg1 = void 0;
+exports.xunhuan1 = exports.msg1 = void 0;
+
+var _ = require("./2.js");
+
 console.log('5');
+console.log(_.xunhuan2);
 var msg1 = "hello";
 exports.msg1 = msg1;
+var xunhuan1 = "1";
+exports.xunhuan1 = xunhuan1;
         },
-        undefined,
+        {"./2.js":"src/2.js"},
       ],'src/2.js': [
         function(require, module, exports) {
           "use strict";
@@ -60,11 +71,17 @@ exports.msg1 = msg1;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.msg2 = void 0;
+exports.xunhuan2 = exports.msg2 = void 0;
+
+var _ = require("./1.js");
+
+console.log(_.xunhuan1);
 console.log('8');
+var xunhuan2 = "2";
+exports.xunhuan2 = xunhuan2;
 var msg2 = ",58";
 exports.msg2 = msg2;
         },
-        undefined,
+        {"./1.js":"src/1.js"},
       ],})
     

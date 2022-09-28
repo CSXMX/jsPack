@@ -81,9 +81,11 @@ function bundle(graph) {
     }
     const result = `
       (function(modules) {
+        var cachedModules = {};
         function require(moduleId) {
+          if (cachedModules[moduleId]) return cachedModules[moduleId].exports;
           const [fn, map] = modules[moduleId]
-          const module = {exports: {}}
+          const module = cachedModules[moduleId] = {exports: {}}
           fn((name)=>require(map[name]), module, module.exports)
           return module.exports
         }

@@ -141,7 +141,9 @@ var a = require('./a.js')
 // node.js最开始的导入模块规范：CommonJS模块大致上就是这种思想。
 ```
 
-这时，又有一个新的情况。假设：a.js 和 b.js 共用一个c.js这个模块，c.js 会计算圆周率，数据量很大，我们希望a.js和b.js共享起来，而不是引用一次计算一次，并且a.js和b.js拿到的应该是同一个对象，所以我们需要把每次加载的模块都保存起来。
+这时，又有一个新的情况。
+
+**假设**：a.js 和 b.js 共用一个c.js这个模块，c.js 会计算圆周率，数据量很大，我们希望a.js和b.js共享起来，而不是引用一次计算一次，并且a.js和b.js拿到的应该是同一个对象，所以我们需要把每次加载的模块都保存起来。
 
 ```jsx
 var cache = {}  // 保存加载过的模块
@@ -231,9 +233,9 @@ Module {
 
 ## 5. 回归
 
- 问题回到如何将各路径下的js文件拼接成一个js文件，根据AST生成的代码并不是闲的无聊，才加个没声明过的变量exports，而是 node.js 遵循 **Common JS 规范** ，exports是用于导出模块变量的对象。
+ 问题回到如何将各路径下的js文件拼接成一个js文件，根据AST生成的代码并不是闲的无聊，才加个没声明过的变量exports，exports是用于导出模块变量的对象。
 
-合并js文件的思路：模仿node.js编译源代码时内部的处理，也做一个模块包装器。
+合并js文件的思路：模仿node.js编译源代码时内部的处理，做一个模块包装器。
 
 ```jsx
 /*
@@ -296,7 +298,8 @@ fs.writeFile('dist/index.js', bundle(createGraph(entry)), err => {
 **exports：用于导出模块变量的对象**
 **require：用于导入模块的函数**
 
-这里的
+这里的require函数是我们自定义的一个递归函数，
+从入口的绝对路径开始，传入相对路径，然后根据构建好的依赖图得到绝对路径。
 
 ```jsx
 (function (modules) {
@@ -380,3 +383,54 @@ fs.writeFile('dist/index.js', bundle(createGraph(entry)), err => {
 })
 ```
 
+## 7. 填坑
+
+写到这里，作者曾一度觉得大功告成了，最后发现还是漏了一个细节，但是nodejs其实已经提供了方案。
+
+当不同模块之间存在相互依赖时，之前的代码会有bug。
+
+```jsx
+//1.js ，先运行1.js
+import {
+    xunhuan2
+} from './2.js';
+console.log('5');
+console.log(xunhuan2); 
+export const msg1 = "hello"
+export const xunhuan1 = "1";
+
+//2.js
+import {
+    xunhuan1
+} from "./1.js";
+console.log(xunhuan1);//打印结果为undefined
+console.log('8');
+export const xunhuan2 = "2";
+export const msg2 = ",58"
+```
+
+上文介绍Common JS规范时，每次加载的模块都会保存起来。
+
+这不仅仅是为了避免重复加载模块，尤其是比较复杂的模块，同时还解决了这种相互依赖会卡死的问题。
+
+其实代码原理很简单，当模块还没加载完，module的exports可能还是个空对象，根据缓存自然就认为是undefined了。因为对象是引用数据类型，当模块加载完时，陆续到位的数据其实还是能通过缓存访问到的。
+
+```jsx
+(function (modules) {
+  var cachedModules = {};
+  function require(moduleId) {
+    if (cachedModules[moduleId]) return cachedModules[moduleId].exports;
+    const [fn, map] = modules[moduleId]
+    const module = cachedModules[moduleId] = {
+      exports: {}
+    }
+    fn((name) => require(map[name]), module, module.exports)
+    return module.exports
+  }
+  require('src/entry.js')
+})
+```
+
+## 8 总结
+
+##### 源码：
